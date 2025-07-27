@@ -1,57 +1,54 @@
 <template>
-    <v-app-bar
-      color="primary"
-      density="compact"
-      elevation="4"
-      class="d-flex flex-column"
-    >
-      <!-- Левая часть с 5 полями -->
-      <div class="d-flex align-center">
-        <v-text-field
-          density="compact"
-          variant="solo-filled"
-          flat
-          hide-details
-          class="mr-2"
-          style="max-width: 120px;"
-        ></v-text-field>
-        <v-text-field
+  <nav class="navbar">
+    <div class="navbar-logo">VueApp</div>
+    <ul class="navbar-links">
+      <li><router-link to="/" exact-active-class="active">Главная</router-link></li>
+      <li><router-link to="/about" exact-active-class="active">О нас</router-link></li>
+      <li><router-link to="/services" exact-active-class="active">Услуги</router-link></li>
+      <li><router-link to="/contact" exact-active-class="active">Контакты</router-link></li>
+    </ul>
+  </nav>
+</template>
 
-            density="compact"
-            variant="solo-filled"
-            flat
-            hide-details
-            class="mr-2"
-            style="max-width: 120px;"
-        ></v-text-field>
-      </div>
-  
-      <v-spacer></v-spacer>
-  
-      <!-- Правая часть с пользователем и кнопкой выхода -->
-      <div class="d-flex align-center">
-        <v-avatar
-          color="secondary"
-          size="36"
-          class="mr-2"
-        >
-          <span class="text-caption">User</span>
-        </v-avatar>
-  
-        <v-btn
-          variant="text"
-          color="white"
-          prepend-icon="mdi-logout"
-          size="small"
-        >
-          Выход
-        </v-btn>
-      </div>
-    </v-app-bar>
-  </template>
-  
-  <script>
-  export default {
-    name: ''
-  }
-  </script>
+<script setup>
+</script>
+
+<style scoped>
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 64px;
+  background: linear-gradient(90deg, #6366f1 0%, #3b3b98 100%);
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.07);
+}
+.navbar-logo {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+.navbar-links {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.navbar-links li {
+  font-size: 1.1rem;
+}
+.navbar-links a {
+  color: #e0e7ff;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+}
+.navbar-links a.active,
+.navbar-links a:hover {
+  background: #fff;
+  color: #3b3b98;
+}
+</style>
