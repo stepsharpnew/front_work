@@ -1,54 +1,49 @@
 <template>
-  <nav class="navbar">
-    <div class="navbar-logo">VueApp</div>
-    <ul class="navbar-links">
-      <li><router-link to="/" exact-active-class="active">Главная</router-link></li>
-      <li><router-link to="/about" exact-active-class="active">О нас</router-link></li>
-      <li><router-link to="/services" exact-active-class="active">Услуги</router-link></li>
-      <li><router-link to="/contact" exact-active-class="active">Контакты</router-link></li>
-    </ul>
-  </nav>
+  <v-app-bar
+    color="primary"
+    density="compact"
+    elevation="11"
+    class="d-flex align-center px-6"
+    height="80"
+  >
+    <!-- Левая часть с названием системы -->
+    <div class="d-flex align-center justify-center" style="height: 100%;">
+      <v-icon class="mr-5" color="white" size="38">mdi-clipboard-list</v-icon>
+      <span style="font-size: 2rem; font-weight: 700; color: #fff; letter-spacing: 1px;">
+        Учет материальных средств отдела
+      </span>
+    </div>
+
+    <v-spacer></v-spacer>
+
+    <!-- Правая часть с пользователем и кнопкой выхода -->
+    <div class="d-flex align-center justify-center" style="height: 100%;">
+      <v-chip
+        color="secondary"
+        variant="elevated"
+        class="mr-4"
+        size="large"
+        style="height: 48px; font-size: 1.1rem; align-items: center;"
+      >
+        <v-icon start size="28">mdi-account</v-icon>
+        Администратор
+      </v-chip>
+      <v-btn
+        variant="elevated"
+        color="white"
+        prepend-icon="mdi-logout"
+        size="large"
+        style="height: 48px; color: #1976d2; font-weight: 600;"
+        class="text-caption"
+      >
+        Выход
+      </v-btn>
+    </div>
+  </v-app-bar>
 </template>
 
-<script setup>
+<script>
+export default {
+  name: 'MainNavBar'
+}
 </script>
-
-<style scoped>
-.navbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 32px;
-  height: 64px;
-  background: linear-gradient(90deg, #6366f1 0%, #3b3b98 100%);
-  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.07);
-}
-.navbar-logo {
-  color: #fff;
-  font-size: 1.5rem;
-  font-weight: bold;
-  letter-spacing: 1px;
-}
-.navbar-links {
-  display: flex;
-  gap: 32px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.navbar-links li {
-  font-size: 1.1rem;
-}
-.navbar-links a {
-  color: #e0e7ff;
-  text-decoration: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  transition: background 0.2s, color 0.2s;
-}
-.navbar-links a.active,
-.navbar-links a:hover {
-  background: #fff;
-  color: #3b3b98;
-}
-</style>
