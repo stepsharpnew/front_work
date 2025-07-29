@@ -1,5 +1,6 @@
 <template>
-  <v-container fluid class="pa-4 bg-grey-lighten-4" style="min-height: 80vh; background-color: #808080;">
+  <v-container fluid class="pa-4 bg-grey-lighten-4 min-h-screen">
+    <MainNavBar />
     <v-row class="mb-5">
       <v-col cols="auto">
         <v-btn color="primary" @click="addEquipment">Добавить оборудование</v-btn>
@@ -8,23 +9,27 @@
         <v-btn color="primary" variant="outlined" @click="backupEquipment">Создать резервную копию оборудования</v-btn>
       </v-col>
     </v-row>
-    <v-divider></v-divider>
-    <v-card class="pt-5 pa-4 mb-5" style="max-width: 97vw; font-family: 'Roboto', sans-serif;">
-      <v-row class="pa-4 bg-blue-lighten-5 rounded" style="gap: 16px;">
+
+    <v-card class="pa-4 mb-5 mx-auto" max-width="97vw" style="font-family: 'Roboto', sans-serif;">
+      <v-row class="pa-3 bg-blue-lighten-5 rounded gap-x-4">
         <v-col cols="2">
           <v-text-field
             label="Поиск (Инв., Зав., Акт)"
             variant="outlined"
             density="comfortable"
             hide-details
+            v-model="filters.search"
+            @input="fetchData()"
           ></v-text-field>
         </v-col>
         <v-col cols="2">
           <v-text-field
-            label="Наименование оборуд."
+            label="Наименование оборудования"
             variant="outlined"
             density="comfortable"
             hide-details
+            v-model="filters.name"
+            @input="fetchData()"
           ></v-text-field>
         </v-col>
         <v-col cols="2">
@@ -34,6 +39,8 @@
             variant="outlined"
             density="comfortable"
             hide-details
+            v-model="filters.department"
+            @update:modelValue="fetchData()"
           ></v-select>
         </v-col>
         <v-col cols="1">
@@ -43,6 +50,8 @@
             variant="outlined"
             density="comfortable"
             hide-details
+            v-model="filters.year"
+            @update:modelValue="fetchData()"
           ></v-select>
         </v-col>
         <v-col cols="1">
@@ -52,39 +61,41 @@
             variant="outlined"
             density="comfortable"
             hide-details
+            v-model="filters.type"
+            @update:modelValue="fetchData()"
           ></v-select>
         </v-col>
         <v-col cols="2" class="d-flex align-center">
           <v-btn variant="elevated" color="error" @click="resetFilters">Сброс</v-btn>
         </v-col>
       </v-row>
-      <v-card-text class="pa-0">
-        <v-row class="text-center font-weight-bold ma-0 pa-0 bg-grey-lighten-3" style="width: 100%; border-radius: 8px 8px 0 0;">
-          <v-col cols="1">Инв. №</v-col>
-          <v-col cols="1">Зав. №</v-col>
-          <v-col cols="1">Дата получения</v-col>
-          <v-col cols="1">Акт получения</v-col>
-          <v-col cols="1">Подразделение</v-col>
-          <v-col cols="1">Статус</v-col>
-          <v-col cols="1">Наименование</v-col>
-          <v-col cols="1">Тип</v-col>
-          <v-col cols="1">Примечания</v-col>
-          <v-col cols="1">Управление</v-col>
+      <v-card-text class="pa-0 ma-0">
+        <v-row class="text-center font-weight-bold mt-4 bg-grey-lighten-3 rounded-t" style="font-size: 0.98rem; height: 100px;">
+          <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Инв. №</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Зав. №</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Дата<br>получения</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Акт<br>получения</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Подразделение</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Статус</v-col>
+          <v-col cols="2" class="d-flex justify-center align-center text-no-wrap">Наименование</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Тип</v-col>
+          <v-col cols="2" class="d-flex justify-center align-center text-no-wrap">Примечания</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Управление</v-col>
         </v-row>
         <v-divider></v-divider>
-        <v-row v-for="item in items" :key="item.id" class="text-center align-center py-3 bg-white" style="width: 100%; border-bottom: 1px solid #e0e0e0;">
-          <v-col cols="1">{{ item.inventory_number }}</v-col>
-          <v-col cols="1">{{ item.factory_number }}</v-col>
-          <v-col cols="1">{{ formatDate(item.receiving_date) }}</v-col>
-          <v-col cols="1">{{ item.act_of_receiving }}</v-col>
-          <v-col cols="1">{{ item.department?.name }}</v-col>
-          <v-col cols="1">
+        <v-row v-for="item in items" :key="item.id" class="text-center align-center py-3 bg-white border-b" >
+          <v-col cols="1" class="d-flex justify-center align-center">{{ item.inventory_number }}</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center">{{ item.factory_number }}</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center">{{ formatDate(item.receiving_date) }}</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center">{{ item.act_of_receiving }}</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center">{{ item.department?.name }}</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center">
             <v-chip :color="statusColor(item.status)" size="small" class="text-white text-uppercase">{{ statusText(item.status) }}</v-chip>
           </v-col>
-          <v-col cols="1">{{ item.eq_type?.name }}</v-col>
-          <v-col cols="1">{{ item.eq_type?.type }}</v-col>
-          <v-col cols="1">{{ item.comment }}</v-col>
-          <v-col cols="1" class="d-flex justify-center align-center" style="gap: 8px;">
+          <v-col cols="2" class="d-flex justify-center align-center">{{ item.eq_type?.name }}</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center">{{ item.eq_type?.type }}</v-col>
+          <v-col cols="2" class="d-flex justify-center align-center">{{ item.comment }}</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center gap-x-2">
             <v-hover v-slot="{ isHovering, props }">
               <v-avatar v-bind="props" size="38" :color="isHovering ? 'blue-lighten-4' : 'grey-lighten-3'" class="elevation-2" style="cursor:pointer;">
                 <v-icon color="primary" @click="editItem(item)">mdi-pencil</v-icon>
@@ -109,35 +120,46 @@
 
 <script>
 import axios from 'axios'
+import MainNavBar from '../components/MainNavBar.vue';
 
 export default {
+  components : {
+    MainNavBar
+  },
   data() {
     return {
       items: [],
       departments: [],
       years: [],
-      types: []
+      types: [],
+      filters: {
+        search: '',
+        name: '',
+        department: '',
+        year: '',
+        type: '',
+      },
+      paginatedData:[]
     }
   },
   methods: {
-    addEquipment() {
-      alert('Добавить оборудование')
+    async fetchData() {
+      let params = { ...this.filters };
+      Object.keys(params).forEach(key => {
+        if (!params[key]) delete params[key];
+      });
+      // params.department.toString("")
+      const response = await axios.get('/api/equipment', { params });
+      console.log(response);
+      
+      this.items = response.data.equipments;
     },
-    backupEquipment() {
-      alert('Создать резервную копию оборудования')
-    },
+
     resetFilters() {
-      alert('Сброс фильтров')
+      this.filters = { search: '', name: '', department: '', year: '', type: '' };
+      this.fetchData();
     },
-    // editItem(item) {
-    //   alert('Редактировать: ' + (item.eq_type?.name || item.inventory_number))
-    // },
-    // copyItem(item) {
-    //   alert('Копировать: ' + (item.eq_type?.name || item.inventory_number))
-    // },
-    // deleteItem(item) {
-    //   alert('Удалить: ' + (item.eq_type?.name || item.inventory_number))
-    // },
+
     formatDate(dateStr) {
       if (!dateStr) return '';
       const d = new Date(dateStr);
@@ -161,13 +183,19 @@ export default {
     }
   },
   async mounted(){
-    const fetchData = await axios.get('/api//equipment')
-    this.items = fetchData.data.equipments
-
+    await this.fetchData();
     const departmentsRes = await axios.get('/api/departments')
-    this.departments = departmentsRes.data.map(dep => dep.name)
-    this.types = fetchData.data.equipments.map(type => type.eq_type.type)
-    this.years =  fetchData.data.equipments.map(year => this.formatDate(year.receiving_date))
-  }
+    this.departments = [...new Set(departmentsRes.data.map(dep => dep.name))];
+    this.types = [...new Set(this.items.map(item => item.eq_type.type))];
+    this.years = [...new Set(this.items
+      .map(item => {
+        const date = item.receiving_date ? new Date(item.receiving_date) : null;
+        return date ? date.getFullYear() : null;
+      })
+      .filter(year => year !== null)
+    )];
+  },
+
+
 }
 </script>

@@ -1,10 +1,8 @@
 <script setup>
-import MainNavBar from './components/components/MainNavBar.vue'
 </script>
 
 <template>
   <v-app>
-    <MainNavBar />
     <v-main>
       <div class="main-content">
         <router-view />

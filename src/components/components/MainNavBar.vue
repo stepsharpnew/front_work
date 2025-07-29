@@ -21,20 +21,21 @@
       <v-chip
         color="secondary"
         variant="elevated"
-        class="mr-4"
+        class="mr-4 pa-6"
         size="large"
         style="height: 48px; font-size: 1.1rem; align-items: center;"
       >
         <v-icon start size="28">mdi-account</v-icon>
-        Администратор
+        {{ username }}
       </v-chip>
       <v-btn
         variant="elevated"
         color="white"
         prepend-icon="mdi-logout"
         size="large"
-        style="height: 48px; color: #1976d2; font-weight: 600;"
+        style="height: 48px; color: #1976d2; font-weight: 900; font-size: x-large;"
         class="text-caption"
+        @click="Logout()"
       >
         Выход
       </v-btn>
@@ -44,6 +45,27 @@
 
 <script>
 export default {
-  name: 'MainNavBar'
+  
+  name: 'MainNavBar',
+  data(){
+    return {
+      username : ""
+    }
+  },
+  methods : {
+    Logout(){
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      this.$router.push('/login')
+    }
+  },
+  mounted(){
+    const accessToken = localStorage.getItem('access_token');
+    const payloadBase64 = accessToken.split('.')[1];
+    const payload = JSON.parse(atob(payloadBase64));
+    console.log(payload);
+    
+    this.username = payload.user.login
+  }
 }
 </script>
