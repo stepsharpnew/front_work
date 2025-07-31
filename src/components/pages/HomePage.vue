@@ -3,7 +3,10 @@
     <MainNavBar />
     <v-row class="mb-5">
       <v-col cols="auto">
-        <v-btn color="primary" @click="addEquipment">Добавить оборудование</v-btn>
+        <EquipmentCreateDialog 
+        :departments="departmentsList" 
+        @created="refreshEquipmentList"
+      />
       </v-col>
       <v-col cols="auto">
         <v-btn color="primary" variant="outlined" @click="backupEquipment">Создать резервную копию оборудования</v-btn>
@@ -12,7 +15,7 @@
 
     <v-card class="pa-4 mb-5 mx-auto" max-width="97vw" style="font-family: 'Roboto', sans-serif;">
       <v-row class="pa-3 bg-blue-lighten-5 rounded gap-x-4">
-        <v-col cols="2">
+        <v-col cols="3">
           <v-text-field
             label="Поиск (Инв., Зав., Акт)"
             variant="outlined"
@@ -22,7 +25,7 @@
             @input="fetchData()"
           ></v-text-field>
         </v-col>
-        <v-col cols="2">
+        <!-- <v-col cols="2">
           <v-text-field
             label="Наименование оборудования"
             variant="outlined"
@@ -31,7 +34,7 @@
             v-model="filters.name"
             @input="fetchData()"
           ></v-text-field>
-        </v-col>
+        </v-col> -->
         <v-col cols="2">
           <v-select
             :items="departments"
@@ -121,10 +124,12 @@
 <script>
 import axios from 'axios'
 import MainNavBar from '../components/MainNavBar.vue';
+import EquipmentCreateDialog from '../modalWindows/addEquipModal.vue'
 
 export default {
   components : {
-    MainNavBar
+    MainNavBar,
+    EquipmentCreateDialog
   },
   data() {
     return {
@@ -144,15 +149,20 @@ export default {
   },
   methods: {
     async fetchData() {
+      const departmentsRes = await axios.get('/api/departments');
+      const departmentsObj = [...new Set(departmentsRes.data)];
+      this.departments = departmentsObj.map(dep => dep.name); 
       let params = { ...this.filters };
-      Object.keys(params).forEach(key => {
-        if (!params[key]) delete params[key];
-      });
-      // params.department.toString("")
+      if (params.department) {
+        const department = departmentsObj.find(dep => dep.name === params.department);
+        if (department) {
+          params.department = department.id;
+        }
+      }
       const response = await axios.get('/api/equipment', { params });
-      console.log(response);
-      
       this.items = response.data.equipments;
+      console.log(this.items);
+      
     },
 
     resetFilters() {
@@ -184,8 +194,7 @@ export default {
   },
   async mounted(){
     await this.fetchData();
-    const departmentsRes = await axios.get('/api/departments')
-    this.departments = [...new Set(departmentsRes.data.map(dep => dep.name))];
+
     this.types = [...new Set(this.items.map(item => item.eq_type.type))];
     this.years = [...new Set(this.items
       .map(item => {
