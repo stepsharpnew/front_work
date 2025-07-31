@@ -4,18 +4,19 @@
     <v-row class="mb-5">
       <v-col cols="auto">
         <EquipmentCreateDialog 
-        :departments="departmentsList" 
-        @created="refreshEquipmentList"
-      />
+          :departments="departments" 
+          @created="refreshEquipmentList"
+          :item="selectedItem"
+        />
       </v-col>
       <v-col cols="auto">
-        <v-btn color="primary" variant="outlined" @click="backupEquipment">Создать резервную копию оборудования</v-btn>
+        <!-- <v-btn color="primary" variant="outlined" @click="backupEquipment">Создать резервную копию оборудования</v-btn> -->
       </v-col>
     </v-row>
 
     <v-card class="pa-4 mb-5 mx-auto" max-width="97vw" style="font-family: 'Roboto', sans-serif;">
       <v-row class="pa-3 bg-blue-lighten-5 rounded gap-x-4">
-        <v-col cols="3">
+        <v-col cols="2">
           <v-text-field
             label="Поиск (Инв., Зав., Акт)"
             variant="outlined"
@@ -25,19 +26,26 @@
             @input="fetchData()"
           ></v-text-field>
         </v-col>
-        <!-- <v-col cols="2">
-          <v-text-field
+        <v-col cols="4">
+          <v-autocomplete
             label="Наименование оборудования"
             variant="outlined"
             density="comfortable"
             hide-details
-            v-model="filters.name"
-            @input="fetchData()"
-          ></v-text-field>
-        </v-col> -->
+            v-model="filters.equipmentType"
+            item-title="name"     
+            item-value="id"
+            :items="suggestions" 
+            :loading="suggestionLoading"
+            @update:search="onNameInput"
+            @update:modelValue="fetchData()"
+          />
+        </v-col>
         <v-col cols="2">
           <v-select
             :items="departments"
+            item-title="name"     
+            item-value="id" 
             label="Подразделение"
             variant="outlined"
             density="comfortable"
@@ -72,8 +80,9 @@
           <v-btn variant="elevated" color="error" @click="resetFilters">Сброс</v-btn>
         </v-col>
       </v-row>
-      <v-card-text class="pa-0 ma-0">
+      <v-card-text class="pa-0 ma-0" v-if="items.length > 0">
         <v-row class="text-center font-weight-bold mt-4 bg-grey-lighten-3 rounded-t" style="font-size: 0.98rem; height: 100px;">
+          <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">№ п/п</v-col>
           <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Инв. №</v-col>
           <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Зав. №</v-col>
           <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Дата<br>получения</v-col>
@@ -82,12 +91,31 @@
           <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Статус</v-col>
           <v-col cols="2" class="d-flex justify-center align-center text-no-wrap">Наименование</v-col>
           <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Тип</v-col>
-          <v-col cols="2" class="d-flex justify-center align-center text-no-wrap">Примечания</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Примечания</v-col>
           <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Управление</v-col>
         </v-row>
         <v-divider></v-divider>
-        <v-row v-for="item in items" :key="item.id" class="text-center align-center py-3 bg-white border-b" >
-          <v-col cols="1" class="d-flex justify-center align-center">{{ item.inventory_number }}</v-col>
+        <v-row v-for="(item,index) in paginatedData" :key="item.id" class="text-center align-center py-3 bg-white border-b" >
+          <v-col cols="1" class="d-flex justify-center align-center">{{ index +1 }}</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center">
+            <span
+              v-if="item.components.length"
+              class="inventory-highlight"
+            >
+            <v-btn 
+              icon="mdi-arrow-down" 
+              size="x-small" 
+              @click="openChildrenModal(item.components)"
+            ></v-btn>
+              {{item.inventory_number }}
+            </span>
+            <span v-else>{{ item.inventory_number }}</span>
+          </v-col>
+          <ChildrenComp
+            v-if="item.components.length"
+            v-model="showChildrenModal"
+            :components="selectedComponents"
+          />
           <v-col cols="1" class="d-flex justify-center align-center">{{ item.factory_number }}</v-col>
           <v-col cols="1" class="d-flex justify-center align-center">{{ formatDate(item.receiving_date) }}</v-col>
           <v-col cols="1" class="d-flex justify-center align-center">{{ item.act_of_receiving }}</v-col>
@@ -97,7 +125,7 @@
           </v-col>
           <v-col cols="2" class="d-flex justify-center align-center">{{ item.eq_type?.name }}</v-col>
           <v-col cols="1" class="d-flex justify-center align-center">{{ item.eq_type?.type }}</v-col>
-          <v-col cols="2" class="d-flex justify-center align-center">{{ item.comment }}</v-col>
+          <v-col cols="1" class="d-flex justify-center align-center">{{ item.comment }}</v-col>
           <v-col cols="1" class="d-flex justify-center align-center gap-x-2">
             <v-hover v-slot="{ isHovering, props }">
               <v-avatar v-bind="props" size="38" :color="isHovering ? 'blue-lighten-4' : 'grey-lighten-3'" class="elevation-2" style="cursor:pointer;">
@@ -114,10 +142,25 @@
                 <v-icon color="error" @click="deleteItem(item)">mdi-delete</v-icon>
               </v-avatar>
             </v-hover>
+            <v-hover v-slot="{ isHovering, props }">
+              <v-avatar v-bind="props" size="38" :color="isHovering ? 'red-lighten-4' : 'grey-lighten-3'" class="elevation-2" style="cursor:pointer;">
+                <v-icon color="error" @click="deleteItem(item)">mdi-delete</v-icon>
+              </v-avatar>
+            </v-hover>
           </v-col>
         </v-row>
       </v-card-text>
+      <v-card-text v-else class="ma-2 pa-5 w-100 d-flex align-center">
+        <div>
+          Нет элементов удовлетворяющих условиям поиска
+        </div>
+      </v-card-text>
     </v-card>
+    <v-pagination
+      v-model="page"
+      :length="pageCount"
+      rounded="circle"
+    ></v-pagination>
   </v-container>
 </template>
 
@@ -125,14 +168,20 @@
 import axios from 'axios'
 import MainNavBar from '../components/MainNavBar.vue';
 import EquipmentCreateDialog from '../modalWindows/addEquipModal.vue'
+import ChildrenComp from '../components/ChildrenComp.vue';
 
 export default {
   components : {
     MainNavBar,
-    EquipmentCreateDialog
+    EquipmentCreateDialog,
+    ChildrenComp
   },
   data() {
     return {
+      page : 1,
+      showChildrenModal: false,
+      selectedComponents: [],
+      selectedItem : '',
       items: [],
       departments: [],
       years: [],
@@ -144,25 +193,55 @@ export default {
         year: '',
         type: '',
       },
-      paginatedData:[]
+      suggestions: [], 
+      suggestionLoading: false,
+      suggestionTimeout: null
+    }
+  },
+  computed : {
+    pageCount() {
+      return Math.ceil(this.items.length / 10)
+    },
+
+    paginatedData() {
+      const start = (this.page - 1) * 10
+      return this.items.slice(start, start + 10)
     }
   },
   methods: {
-    async fetchData() {
-      const departmentsRes = await axios.get('/api/departments');
-      const departmentsObj = [...new Set(departmentsRes.data)];
-      this.departments = departmentsObj.map(dep => dep.name); 
-      let params = { ...this.filters };
-      if (params.department) {
-        const department = departmentsObj.find(dep => dep.name === params.department);
-        if (department) {
-          params.department = department.id;
-        }
+    onNameInput(val) {
+      clearTimeout(this.suggestionTimeout);
+      this.suggestionTimeout = setTimeout(() => {
+        this.fetchNameSuggestions(val);       
+      }, 300);
+    },
+    async fetchNameSuggestions(query) {
+      this.suggestionLoading = true;
+      try {
+        const res = await axios.get(`/api/equipment-type?name=${query}`);        
+        this.suggestions = res.data       
+      } catch (e) {
+        console.error('Ошибка подсказок:', e);
+      } finally {
+        this.suggestionLoading = false;
       }
+    },
+    async refreshEquipmentList(){
+      this.fetchData()
+    },
+    async fetchData() {
+      if (this.filters.equipmentType) {
+        console.log(this.filters.equipmentType);
+      }
+      const departmentsRes = await axios.get('/api/departments');
+      this.departments = [...new Set(departmentsRes.data)];
+      let params = { ...this.filters };
       const response = await axios.get('/api/equipment', { params });
       this.items = response.data.equipments;
-      console.log(this.items);
-      
+    },
+    openChildrenModal(components) {
+      this.selectedComponents = components;
+      this.showChildrenModal = true;
     },
 
     resetFilters() {
@@ -183,6 +262,7 @@ export default {
         default: return 'primary';
       }
     },
+ 
     statusText(status) {
       switch (status) {
         case 'at_work': return 'В работе';
@@ -190,6 +270,10 @@ export default {
         case 'decommissioned': return 'Списан';
         default: return status;
       }
+    },
+    copyItem(item){
+      this.selectedItem = item;
+      this.$emit('copy', item);
     }
   },
   async mounted(){
@@ -203,8 +287,23 @@ export default {
       })
       .filter(year => year !== null)
     )];
+    
   },
-
-
 }
 </script>
+
+<style scoped>
+.inventory-highlight {
+  font-weight: bold;
+  color: red;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.inventory-highlight:hover {
+  color: darkred;
+  text-decoration: underline;
+  transform: scale(1.05);
+}
+
+</style>

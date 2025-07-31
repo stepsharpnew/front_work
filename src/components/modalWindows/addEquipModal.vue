@@ -36,6 +36,14 @@
                   dense
                 ></v-text-field>
               </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="formData.act_of_receiving"
+                  label="Акт приема"
+                  outlined
+                  dense
+                ></v-text-field>
+              </v-col>
               
               <v-col cols="12" md="6">
                 <v-select
@@ -47,39 +55,33 @@
                   outlined
                   dense
                   :rules="[v => !!v || 'Обязательное поле']"
+                  
                 ></v-select>
               </v-col>
-              
               <v-col cols="12" md="6">
                 <v-select
                   v-model="formData.status"
-                  :items="statusOptions.value"
+                  :items="statusOptions"
+                  item-title="text"     
+                  item-value="value"    
                   label="Статус"
                   outlined
                   dense
                   :rules="[v => !!v || 'Обязательное поле']"
-                ></v-select>
+                />
               </v-col>
-              
               <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.type"
+                <v-select
                   label="Тип оборудования"
+                  v-model="formData.type"
+                  :items="typeOptions"
+                  item-title="text"     
+                  item-value="value"  
                   outlined
                   dense
                   :rules="[v => !!v || 'Обязательное поле']"
-                ></v-text-field>
+                ></v-select>
               </v-col>
-              
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.act_of_receiving"
-                  label="Акт приема"
-                  outlined
-                  dense
-                ></v-text-field>
-              </v-col>
-              
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="formData.receiving_date"
@@ -88,17 +90,7 @@
                   outlined
                   dense
                 ></v-text-field>
-              </v-col>
-              
-              <!-- <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="formData.parent_id"
-                  label="Родительское оборудование (ID)"
-                  outlined
-                  dense
-                ></v-text-field>
-              </v-col> -->
-              
+              </v-col>         
               <v-col cols="12">
                 <v-textarea
                   v-model="formData.comment"
@@ -131,11 +123,17 @@
   </template>
   
   <script>
+  import axios from 'axios'
   export default {
     props: {
       departments: {
         type: Array,
         required: true
+      },
+      item : {
+        type : Object,
+        required : false,
+        default : null
       }
     },
     
@@ -149,6 +147,10 @@
           { text: 'В ремонте', value: 'repair' },
           { text: 'Списано', value: 'archive' },
         //   { text: 'В резерве', value: 'in_reserve' }
+        ],
+        typeOptions : [
+          {text: 'sius', value : '1a10091d-7a71-4d3e-8abd-a401eafdee11'},
+          {text : 'ssius', value : "b27ca44e-5c4f-4f59-b647-0a3f7907857e"}
         ],
         formData: {
           department_id: '',
@@ -164,18 +166,16 @@
         }
       }
     },
-    
     methods: {
       async submitForm() {
-        if (!this.$refs.form.validate()) return
-        
+        // if (!this.$refs.form.validate()) return
         this.loading = true
-        
         try {
-          await axios.post('/api/equipment', this.formData)
+          const response = await axios.post('/api/equipment', this.formData)         
           this.$emit('created')
           this.dialog = false
-          this.$refs.form.reset()
+
+          // this.$refs.form.reset()
         } catch (error) {
           console.error('Ошибка при создании оборудования:', error)
           // Здесь можно добавить обработку ошибок (например, показать уведомление)
@@ -183,7 +183,30 @@
           this.loading = false
         }
       }
+    },
+    mounted(){
+      
+    },
+    watch: {
+    item: {
+      immediate: false,
+      handler(newItem) {
+        if (newItem) {
+          console.log(newItem);
+          this.formData = {
+            ...newItem,
+            factory_number : '',
+            inventory_number : '',
+            parent_id: newItem.id, 
+            id: undefined,
+            // created_at: undefined,
+            // …
+          };
+          this.dialog = true;
+        }
+      }
     }
+  },
   }
   </script>
   

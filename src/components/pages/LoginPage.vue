@@ -91,9 +91,7 @@
           
           // Сохраняем access/refresh токены в localStorage
           localStorage.setItem('access_token', response.data.data.access_token);
-          localStorage.setItem('refresh_token', response.data.data.refresh_token);
-          console.log(response.data.data);
-          
+          localStorage.setItem('refresh_token', response.data.data.refresh_token);         
           this.$router.push('/');
         } catch (e) {
           console.error(e);

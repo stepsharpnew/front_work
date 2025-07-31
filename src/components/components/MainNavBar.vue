@@ -63,8 +63,7 @@ export default {
     const accessToken = localStorage.getItem('access_token');
     const payloadBase64 = accessToken.split('.')[1];
     const payload = JSON.parse(atob(payloadBase64));
-    console.log(payload);
-    
+ 
     this.username = payload.user.login
   }
 }
