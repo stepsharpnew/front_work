@@ -7,6 +7,7 @@
           :departments="departments" 
           @created="refreshEquipmentList"
           :item="selectedItem"
+          :mode="selectedMode"
         />
       </v-col>
       <v-col cols="auto">
@@ -95,8 +96,13 @@
           <v-col cols="1" class="d-flex justify-center align-center text-no-wrap">Управление</v-col>
         </v-row>
         <v-divider></v-divider>
-        <v-row v-for="(item,index) in paginatedData" :key="item.id" class="text-center align-center py-3 bg-white border-b" >
-          <v-col cols="1" class="d-flex justify-center align-center">{{ index +1 }}</v-col>
+        <v-row
+          v-for="(item, index) in paginatedData"
+          :key="item.id"
+          class="text-center align-center py-3 border-b"
+          :class="item.components.length ? 'bg-red-lighten-5' : 'bg-white'"
+        >
+          <v-col cols="1" class="d-flex justify-center align-center">{{ (1 + index) + (page-1)* 10 }}</v-col>
           <v-col cols="1" class="d-flex justify-center align-center">
             <span
               v-if="item.components.length"
@@ -129,24 +135,21 @@
           <v-col cols="1" class="d-flex justify-center align-center gap-x-2">
             <v-hover v-slot="{ isHovering, props }">
               <v-avatar v-bind="props" size="38" :color="isHovering ? 'blue-lighten-4' : 'grey-lighten-3'" class="elevation-2" style="cursor:pointer;">
-                <v-icon color="primary" @click="editItem(item)">mdi-pencil</v-icon>
+                <v-icon color="primary" @click="editItem(item)" v-tooltip="'Редактировать'">mdi-pencil</v-icon>
               </v-avatar>
             </v-hover>
             <v-hover v-slot="{ isHovering, props }">
               <v-avatar v-bind="props" size="38" :color="isHovering ? 'blue-lighten-4' : 'grey-lighten-3'" class="elevation-2" style="cursor:pointer;">
-                <v-icon color="primary" @click="copyItem(item)">mdi-content-copy</v-icon>
+                <v-icon color="primary" @click="copyItem(item)" v-tooltip="'Создать по образцу'">mdi-content-copy</v-icon>
               </v-avatar>
             </v-hover>
-            <v-hover v-slot="{ isHovering, props }">
-              <v-avatar v-bind="props" size="38" :color="isHovering ? 'red-lighten-4' : 'grey-lighten-3'" class="elevation-2" style="cursor:pointer;">
-                <v-icon color="error" @click="deleteItem(item)">mdi-delete</v-icon>
-              </v-avatar>
-            </v-hover>
-            <v-hover v-slot="{ isHovering, props }">
-              <v-avatar v-bind="props" size="38" :color="isHovering ? 'red-lighten-4' : 'grey-lighten-3'" class="elevation-2" style="cursor:pointer;">
-                <v-icon color="error" @click="deleteItem(item)">mdi-delete</v-icon>
-              </v-avatar>
-            </v-hover>
+            <div>
+              <ConfirmComp
+                @click="deleteItem(item)"
+                :item="deletedItem"
+                @deleted="fetchData"
+              />
+            </div>
           </v-col>
         </v-row>
       </v-card-text>
@@ -169,19 +172,23 @@ import axios from 'axios'
 import MainNavBar from '../components/MainNavBar.vue';
 import EquipmentCreateDialog from '../modalWindows/addEquipModal.vue'
 import ChildrenComp from '../components/ChildrenComp.vue';
+import ConfirmComp from '../modalWindows/ConfirmComp.vue';
 
 export default {
   components : {
     MainNavBar,
     EquipmentCreateDialog,
-    ChildrenComp
+    ChildrenComp,
+    ConfirmComp
   },
   data() {
     return {
       page : 1,
+      selectedMode : '',
       showChildrenModal: false,
       selectedComponents: [],
-      selectedItem : '',
+      selectedItem : null,
+      deletedItem: null,
       items: [],
       departments: [],
       years: [],
@@ -209,6 +216,10 @@ export default {
     }
   },
   methods: {
+    openDialog(item) {
+      this.deletedItem = item
+      this.confirmDialog = true
+    },
     onNameInput(val) {
       clearTimeout(this.suggestionTimeout);
       this.suggestionTimeout = setTimeout(() => {
@@ -271,9 +282,17 @@ export default {
         default: return status;
       }
     },
+    editItem(item){
+      this.selectedItem = item;
+      this.selectedMode = 'edit';
+    },
     copyItem(item){
       this.selectedItem = item;
-      this.$emit('copy', item);
+      this.selectedMode = 'copy';
+    },
+    async deleteItem(item){
+      this.deletedItem = item
+      
     }
   },
   async mounted(){
