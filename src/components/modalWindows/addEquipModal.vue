@@ -69,18 +69,7 @@
                   :rules="[v => !!v || 'Обязательное поле']"
                 />
               </v-col>
-              <v-col cols="12" md="4">
-                <v-select
-                  label="Тип оборудования"
-                  v-model="formData.type"
-                  :items="typeOptions"
-                  item-title="text"     
-                  item-value="value"  
-                  outlined
-                  dense
-                  :rules="[v => !!v || 'Обязательное поле']"
-                ></v-select>
-              </v-col>
+
               <v-col cols="12" md="4">
                 <v-text-field
                   v-model="formData.receiving_date"
@@ -89,8 +78,24 @@
                   outlined
                   dense
                 ></v-text-field>
-              </v-col>         
-              <v-col cols="8">
+              </v-col>
+              <v-col cols="12">
+                <v-autocomplete
+                  label="Наименование оборудования"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  v-model="formData.name"
+                  item-title="name"     
+                  item-value="id"
+                  :items="parentSuggestions" 
+                  :loading="suggestionLoading"
+                  @update:search="onParentSearch"
+                  @update:modelValue="onParentSelect"
+                />
+              </v-col>
+
+              <v-col cols="12">
                 <v-textarea
                   v-model="formData.comment"
                   label="Комментарий"
@@ -100,19 +105,16 @@
                 ></v-textarea>
               </v-col>
             </v-row>
+<!-- //----------------------------------------------------------------------------------------- -->
 
 
-            <v-card>
-              
-            </v-card>
+
             <v-card-text class="mt-4">
               <h1>Компоненты</h1>
               <v-row cols="12">
 
               <template v-for="(child, idx) in formData.childrens" :key="idx">
-                <v-card>
-                  
-                </v-card>
+
               <v-col cols="12" md="4">
                 <v-text-field
                   v-model="child.factory_number"
@@ -132,8 +134,7 @@
                   dense
                   :rules="[v => !!v || 'Обязательное поле']"
                 />
-                </v-col>
-             
+              </v-col>
               <v-col cols="12" md="4">
                 <v-select
                   v-model="child.department_id"
@@ -144,51 +145,23 @@
                   outlined
                   dense
                   :rules="[v => !!v || 'Обязательное поле']"
-                  
                 ></v-select>
               </v-col>
               <v-col cols="12">
-                <v-text-field
-                  v-model="child.name"  
-                  label="Наименование"
-                  outlined
-                  dense
-                  :rules="[v => !!v || 'Обязательное поле']"
+                <v-autocomplete
+                  v-model="child.name"
+                  :items="childSuggestions[idx] || []"
+                  item-title="name"
+                  item-value="id"
+                  :loading="childLoading[idx]"
+                  hide-details
+                  variant="outlined"
+                  density="comfortable"
+                  label="Наименование оборудования"
+                  @update:search="val => onChildSearch(val, idx)"
+                  @update:modelValue="val => onChildSelect(val, idx)"
                 />
               </v-col>
-              <!-- <v-col cols="12">
-                <v-select
-                  v-model="child.status"
-                  :items="statusOptions"
-                  item-title="text"     
-                  item-value="value"    
-                  label="Статус"
-                  outlined
-                  dense
-                  :rules="[v => !!v || 'Обязательное поле']"
-                />
-              </v-col> -->
-              <v-col cols="3">
-                <v-select
-                  label="Тип оборудования"
-                  v-model="child.type"
-                  :items="typeOptions"
-                  item-title="text"     
-                  item-value="value"  
-                  outlined
-                  dense
-                  :rules="[v => !!v || 'Обязательное поле']"
-                ></v-select>
-              </v-col>
-              <!-- <v-col cols="12" md="4">
-                <v-text-field
-                  v-model="child.receiving_date"
-                  label="Дата приема"
-                  type="date"
-                  outlined
-                  dense
-                ></v-text-field>
-              </v-col>          -->
               <v-col cols="8">
                 <v-textarea
                   v-model="child.comment"
@@ -254,6 +227,16 @@
     
     data() {
       return {
+        equipmentType: '',      
+        equipmentTypeChild: '', 
+        parentSuggestions: [],
+        parentLoading: false,
+        parentTimeout: null,
+
+
+        childSuggestions: [],  // уже есть
+        childLoading: {},      // <— инициализируем
+        childTimeout: {}, 
         dialog: false,
         action: 'Создание',
         valid: false,
@@ -262,13 +245,13 @@
         statusOptions: [
           { text: 'В работе', value: 'at_work' },
           { text: 'В ремонте', value: 'repair' },
-          { text: 'Списано', value: 'archive' },
+          { text: 'В архиве', value: 'archive' },
         //   { text: 'В резерве', value: 'in_reserve' }
         ],
-        typeOptions : [
-          {text: 'sius', value : '1a10091d-7a71-4d3e-8abd-a401eafdee11'},
-          {text : 'ssius', value : "b27ca44e-5c4f-4f59-b647-0a3f7907857e"}
-        ],
+        // typeOptions : [
+        //   {text: 'sius', value : '1a10091d-7a71-4d3e-8abd-a401eafdee11'},
+        //   {text : 'ssius', value : "b27ca44e-5c4f-4f59-b647-0a3f7907857e"}
+        // ],
         formData: {
           department_id: '',
           inventory_number: '',
@@ -320,39 +303,75 @@
       },
       async submitForm() {
         this.loading = true
+        const body = {
+          updated_equipment: this.formData,
+          deleted_equipments: this.deleted_equipments
+        } 
         try {
           if (this.mode == 'edit') {
-            console.log(this.mode);
-            const putUpdate = await axios.put('/api/equipment', {
-              updated_equipment: this.formData,
-               deleted_equipments: this.deleted_equipments
-              })
-              console.log(this.formData);
+            const putUpdate = await axios.put('/api/equipment', body)
             console.log(putUpdate);
+            console.log(body);
           }
           else{
             const response = await axios.post('/api/equipment', this.formData)  
-            console.log('asdasdadsa');
-            
-            console.log(response);
-            
           }       
           this.$emit('created')
           this.dialog = false
         } catch (error) {
           console.error('Ошибка при создании оборудования:', error)
+  
         } finally {
           this.loading = false
         }
-      }
+      },
+      onParentSearch(val) {
+        clearTimeout(this.parentTimeout);
+        this.parentTimeout = setTimeout(() => {
+          this.fetchParentSuggestions(val);
+        }, 300);
+      },
+      async fetchParentSuggestions(query) {
+        this.parentLoading = true;
+        try {
+          const { data } = await axios.get(`/api/equipment-type?name=${query}`);
+          console.log(data);
+          
+          this.parentSuggestions = data;
+        } finally {
+          this.parentLoading = false;
+        }
+      },
+      onParentSelect(val) {
+        this.formData.type = val;
+      },
+
+      onChildSearch(val, idx) {
+        clearTimeout(this.childTimeout[idx]);
+        this.childTimeout[idx] = setTimeout(() => {
+          this.fetchChildSuggestions(val, idx);
+        }, 300);
+      },
+      async fetchChildSuggestions(query, idx) {
+        this.childLoading[idx] = true;
+        try {
+          const { data } = await axios.get(`/api/equipment-type?name=${query}`);
+          this.childSuggestions[idx] = data;
+        } finally {
+          this.childLoading[idx] = false;
+        }
+      },
+      onChildSelect(val, idx) {
+        this.formData.childrens[idx].type = val;
+      },
     },
     mounted(){
     },
+    emits: ['created', 'update:search', 'update:modelValue'],  
     watch: {
     item: {
       immediate: false,
       handler(newItem) {
-        console.log(newItem); 
         if (newItem) {
             if (this.mode == "copy") {
               this.action = "Создание"
@@ -377,6 +396,8 @@
               act_of_receiving: c.act_of_receiving || '',
               status: c.status || 'at_work',
               department_id: c.department_id,
+              inventory_number: c.inventory_number,
+              act_of_receiving:c.act_of_receiving,
               name: c.eq_type.name,
               type: c.type || '',
               receiving_date: c.receiving_date ? c.receiving_date.substr(0,10) : new Date().toISOString().substr(0,10),

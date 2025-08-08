@@ -181,6 +181,7 @@ export default {
     ChildrenComp,
     ConfirmComp
   },
+  
   data() {
     return {
       page : 1,
@@ -248,6 +249,8 @@ export default {
       this.departments = [...new Set(departmentsRes.data)];
       let params = { ...this.filters };
       const response = await axios.get('/api/equipment', { params });
+      console.log(response.data);
+      
       this.items = response.data.equipments;
     },
     openChildrenModal(components) {
@@ -268,8 +271,8 @@ export default {
     statusColor(status) {
       switch (status) {
         case 'at_work': return 'success';
-        case 'broken': return 'error';
-        case 'decommissioned': return 'grey';
+        case 'repair': return 'error';
+        case 'archive': return 'grey';
         default: return 'primary';
       }
     },
@@ -277,8 +280,8 @@ export default {
     statusText(status) {
       switch (status) {
         case 'at_work': return 'В работе';
-        case 'broken': return 'Сломан';
-        case 'decommissioned': return 'Списан';
+        case 'repair': return 'В ремонте';
+        case 'archive': return 'В архиве';
         default: return status;
       }
     },
@@ -305,8 +308,7 @@ export default {
         return date ? date.getFullYear() : null;
       })
       .filter(year => year !== null)
-    )];
-    
+    )]; 
   },
 }
 </script>

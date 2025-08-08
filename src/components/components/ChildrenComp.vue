@@ -71,8 +71,8 @@
       statusColor(status) {
         const colors = {
           'at_work': 'success',
-          'in_repair': 'error',
-          'written_off': 'grey',
+          'repair': 'error',
+          'archive': 'grey',
         }
         return colors[status] || 'grey'
       },
@@ -80,8 +80,7 @@
         const texts = {
           'at_work': 'В работе',
           'repair': 'В ремонте',
-          'written_off': 'Списано',
-          'in_reserve': 'В резерве'
+          'archive': 'В архиве',
         }
         return texts[status] || status
       },
